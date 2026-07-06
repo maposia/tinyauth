@@ -5,13 +5,14 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/rs/zerolog/log"
+	"github.com/steveiliop56/tinyauth/internal/utils/tlog"
 )
 
+// See context middleware for explanation of why we have to do this
 var (
 	loggerSkipPathsPrefix = []string{
-		"GET /api/health",
-		"HEAD /api/health",
+		"GET /api/healthz",
+		"HEAD /api/healthz",
 		"GET /favicon.ico",
 	}
 )
@@ -49,7 +50,7 @@ func (m *ZerologMiddleware) Middleware() gin.HandlerFunc {
 
 		latency := time.Since(tStart).String()
 
-		subLogger := log.With().Str("method", method).
+		subLogger := tlog.HTTP.With().Str("method", method).
 			Str("path", path).
 			Str("address", address).
 			Str("client_ip", clientIP).

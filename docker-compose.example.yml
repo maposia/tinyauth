@@ -1,30 +1,21 @@
 services:
-  traefik:
-    container_name: traefik
-    image: traefik:v3.3
-    command: --api.insecure=true --providers.docker
+  nginx:
+    image: nginx:1.29-alpine
     ports:
       - 80:80
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+      - ./nginx.conf.example:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - app
+      - tinyauth
 
-  whoami:
-    container_name: whoami
+  app:
     image: traefik/whoami:latest
-    labels:
-      traefik.enable: true
-      traefik.http.routers.whoami.rule: Host(`whoami.example.com`)
-      traefik.http.routers.whoami.middlewares: tinyauth
 
   tinyauth:
-    container_name: tinyauth
-    image: ghcr.io/steveiliop56/tinyauth:v3
+    image: ghcr.io/maposia/remnawave-tinyauth:v5
     environment:
-      - APP_URL=https://tinyauth.example.com
-      - USERS=user:$$2a$$10$$UdLYoJ5lgPsC0RKqYH/jMua7zIn0g9kPqWmhYayJYLaZQ/FTmH2/u # user:password
+      - TINYAUTH_APPURL=https://tinyauth.example.com
+      - TINYAUTH_AUTH_USERS=user:$$2a$$10$$UdLYoJ5lgPsC0RKqYH/jMua7zIn0g9kPqWmhYayJYLaZQ/FTmH2/u # user:password
     volumes:
       - ./data:/data
-    labels:
-      traefik.enable: true
-      traefik.http.routers.tinyauth.rule: Host(`tinyauth.example.com`)
-      traefik.http.middlewares.tinyauth.forwardauth.address: http://tinyauth:3000/api/auth/traefik

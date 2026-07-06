@@ -1,4 +1,4 @@
-FROM golang:1.25-alpine3.21
+FROM golang:1.26-alpine3.23
 
 WORKDIR /tinyauth
 
@@ -12,9 +12,12 @@ RUN go install github.com/go-delve/delve/cmd/dlv@latest
 
 COPY ./cmd ./cmd
 COPY ./internal ./internal
-COPY ./main.go ./
 COPY ./air.toml ./
 
 EXPOSE 3000
+
+ENV TINYAUTH_DATABASE_PATH=/data/tinyauth.db
+
+ENV TINYAUTH_RESOURCES_PATH=/data/resources
 
 ENTRYPOINT ["air", "-c", "air.toml"]

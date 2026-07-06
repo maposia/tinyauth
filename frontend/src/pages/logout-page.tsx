@@ -29,7 +29,7 @@ export const LogoutPage = () => {
       });
 
       redirectTimer.current = window.setTimeout(() => {
-        window.location.assign("/login");
+        window.location.replace("/login");
       }, 500);
     },
     onError: () => {
@@ -39,23 +39,24 @@ export const LogoutPage = () => {
     },
   });
 
-  useEffect(
-    () => () => {
-      if (redirectTimer.current) clearTimeout(redirectTimer.current);
-    },
-    [],
-  );
+  useEffect(() => {
+    return () => {
+      if (redirectTimer.current) {
+        clearTimeout(redirectTimer.current);
+      }
+    };
+  }, [redirectTimer]);
 
   if (!isLoggedIn) {
     return <Navigate to="/login" replace />;
   }
 
   return (
-    <Card className="min-w-xs sm:min-w-sm">
-      <CardHeader>
-        <CardTitle className="text-3xl">{t("logoutTitle")}</CardTitle>
+    <Card>
+      <CardHeader className="gap-1.5">
+        <CardTitle className="text-xl">{t("logoutTitle")}</CardTitle>
         <CardDescription>
-          {provider !== "username" ? (
+          {provider !== "local" && provider !== "ldap" ? (
             <Trans
               i18nKey="logoutOauthSubtitle"
               t={t}
@@ -66,6 +67,7 @@ export const LogoutPage = () => {
                 username: email,
                 provider: oauthName,
               }}
+              shouldUnescape={true}
             />
           ) : (
             <Trans
@@ -77,12 +79,15 @@ export const LogoutPage = () => {
               values={{
                 username,
               }}
+              shouldUnescape={true}
             />
           )}
         </CardDescription>
       </CardHeader>
-      <CardFooter className="flex flex-col items-stretch">
+      <CardFooter>
         <Button
+          className="w-full"
+          variant="outline"
           loading={logoutMutation.isPending}
           onClick={() => logoutMutation.mutate()}
         >

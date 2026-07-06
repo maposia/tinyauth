@@ -16,6 +16,7 @@ import { useEffect, useId, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Navigate, useLocation } from "react-router";
 import { toast } from "sonner";
+import { useOIDCParams } from "@/lib/hooks/oidc";
 
 export const TotpPage = () => {
   const { totpPending } = useUserContext();
@@ -26,7 +27,8 @@ export const TotpPage = () => {
   const redirectTimer = useRef<number | null>(null);
 
   const searchParams = new URLSearchParams(search);
-  const redirectUri = searchParams.get("redirect_uri");
+  const redirectUri = searchParams.get("redirect_uri") || undefined;
+  const oidcParams = useOIDCParams(searchParams);
 
   const totpMutation = useMutation({
     mutationFn: (values: TotpSchema) => axios.post("/api/user/totp", values),
@@ -37,8 +39,13 @@ export const TotpPage = () => {
       });
 
       redirectTimer.current = window.setTimeout(() => {
+        if (oidcParams.isOidc) {
+          window.location.replace(`/authorize?${oidcParams.compiled}`);
+          return;
+        }
+
         window.location.replace(
-          `/continue?redirect_uri=${encodeURIComponent(redirectUri ?? "")}`,
+          `/continue${redirectUri ? `?redirect_uri=${encodeURIComponent(redirectUri)}` : ""}`,
         );
       }, 500);
     },
@@ -49,32 +56,37 @@ export const TotpPage = () => {
     },
   });
 
-  useEffect(
-    () => () => {
-      if (redirectTimer.current) clearTimeout(redirectTimer.current);
-    },
-    [],
-  );
+  useEffect(() => {
+    return () => {
+      if (redirectTimer.current) {
+        clearTimeout(redirectTimer.current);
+      }
+    };
+  }, [redirectTimer]);
 
   if (!totpPending) {
     return <Navigate to="/" replace />;
   }
 
   return (
-    <Card className="min-w-xs sm:min-w-sm">
-      <CardHeader>
-        <CardTitle className="text-3xl">{t("totpTitle")}</CardTitle>
+    <Card>
+      <CardHeader className="gap-1.5">
+        <CardTitle className="text-xl">{t("totpTitle")}</CardTitle>
         <CardDescription>{t("totpSubtitle")}</CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col items-center">
+      <CardContent>
         <TotpForm
           formId={formId}
           onSubmit={(values) => totpMutation.mutate(values)}
-          loading={totpMutation.isPending}
         />
       </CardContent>
-      <CardFooter className="flex flex-col items-stretch">
-        <Button form={formId} type="submit" loading={totpMutation.isPending}>
+      <CardFooter>
+        <Button
+          className="w-full"
+          form={formId}
+          type="submit"
+          loading={totpMutation.isPending}
+        >
           {t("continueTitle")}
         </Button>
       </CardFooter>

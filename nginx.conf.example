@@ -1,0 +1,51 @@
+events {}
+
+http {
+  server {
+    listen 80;
+    server_name tinyauth.example.com;
+
+    location / {
+      proxy_pass http://tinyauth:3000;
+      proxy_set_header Host $host;
+      proxy_set_header X-Forwarded-Proto $scheme;
+      proxy_set_header X-Forwarded-Host $host;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+  }
+
+  server {
+    listen 80;
+    server_name app.example.com;
+
+    location / {
+      auth_request /tinyauth;
+      auth_request_set $tinyauth_location $upstream_http_x_tinyauth_location;
+      error_page 401 403 = @tinyauth_redirect;
+
+      proxy_pass http://app:80;
+      proxy_set_header Host $host;
+      proxy_set_header X-Forwarded-Proto $scheme;
+      proxy_set_header X-Forwarded-Host $host;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header Authorization $http_authorization;
+      proxy_set_header X-Api-Key "";
+    }
+
+    location = /tinyauth {
+      internal;
+      proxy_pass http://tinyauth:3000/api/auth/nginx;
+      proxy_pass_request_body off;
+      proxy_set_header Content-Length "";
+      proxy_set_header X-Forwarded-Proto $scheme;
+      proxy_set_header X-Forwarded-Host $host;
+      proxy_set_header X-Forwarded-Uri $request_uri;
+      proxy_set_header X-Api-Key $http_x_api_key;
+      proxy_set_header Authorization $http_authorization;
+    }
+
+    location @tinyauth_redirect {
+      return 302 $tinyauth_location;
+    }
+  }
+}
